@@ -34,7 +34,7 @@ struct Options {
 	bool exit_after_parse = false;
 	uint32_t rom_base_address = 0;
 	std::string resource_type;
-	int32_t resource_id = 0;
+	int32_t resource_id = -1;
 	bool resource_converted = true;
 };
 

@@ -40,7 +40,7 @@ struct ParsedFlags {
 	bool emit_assets = false;
 	bool emit_resource_index = false;
 	std::string resource_type;
-	int32_t resource_id = 0;
+	int32_t resource_id = -1;
 	bool resource_converted = true;
 	bool resource_native = false;
 };
@@ -202,9 +202,22 @@ int finalize_options(
 			stackimport_quill_diagnosticf("Error: --type is required for convert mode.\n");
 			return 3;
 		}
+		if(convertFlags.input_path.empty())
+		{
+			stackimport_quill_diagnosticf("Error: Missing input path.\n%s\n", app.help().c_str());
+			return 4;
+		}
 		options.resource_type = selected->resource_type;
-		options.resource_id = convertFlags.resource_id;
+		if(convertFlags.resource_native && convertFlags.resource_id == -1)
+		{
+			options.resource_id = 0;
+		}
+		else
+		{
+			options.resource_id = convertFlags.resource_id;
+		}
 		options.resource_converted = !convertFlags.resource_native;
+		options.input_path = convertFlags.input_path;
 	}
 
 	const std::string romBaseText = selected->rom_base.empty() ? root.rom_base : selected->rom_base;

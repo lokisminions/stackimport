@@ -32,24 +32,20 @@ int STACKIMPORT_CALL convert_payload_to_file(
 	return 1;
 }
 
-int run_convert_mode(const Options& options)
+std::string default_output_path(const std::string& input_path, const std::string& type)
 {
-	if(options.resource_type.size() != 4)
-	{
-		stackimport_quill_diagnosticf("Error: --type must be exactly 4 bytes (e.g., PICT, snd , ICON).\n");
-		return 3;
-	}
+	std::string output_path = input_path + "." + type;
+	std::replace(output_path.begin(), output_path.end(), '/', '_');
+	return output_path;
+}
 
+int convert_single_file(
+	const std::string& input_path,
+	const std::string& output_path,
+	const Options& options)
+{
 	ConvertOutput output;
-	if(!options.output_path.empty())
-	{
-		output.output_path = options.output_path;
-	}
-	else
-	{
-		output.output_path = options.input_path + "." + options.resource_type;
-		std::replace(output.output_path.begin(), output.output_path.end(), '/', '_');
-	}
+	output.output_path = output_path;
 
 	output.outfile = fopen(output.output_path.c_str(), "wb");
 	if(!output.outfile)
@@ -59,10 +55,10 @@ int run_convert_mode(const Options& options)
 	}
 
 	std::vector<uint8_t> buf;
-	if(!read_entire_file(options.input_path, buf))
+	if(!read_entire_file(input_path, buf))
 	{
 		fclose(output.outfile);
-		stackimport_quill_diagnosticf("Error: Failed to read '%s'.\n", options.input_path.c_str());
+		stackimport_quill_diagnosticf("Error: Failed to read '%s'.\n", input_path.c_str());
 		return 5;
 	}
 
@@ -93,6 +89,22 @@ int run_convert_mode(const Options& options)
 		output.output_path.c_str(),
 		output.bytes_written);
 	return 0;
+}
+
+int run_convert_mode(const Options& options)
+{
+	if(options.resource_type.size() != 4)
+	{
+		stackimport_quill_diagnosticf("Error: --type must be exactly 4 bytes (e.g., PICT, snd , ICON).\n");
+		return 3;
+	}
+
+	const std::string& input_path = options.input_path;
+	std::string output_path = options.output_path;
+	if(output_path.empty())
+		output_path = default_output_path(input_path, options.resource_type);
+
+	return convert_single_file(input_path, output_path, options);
 }
 
 } // namespace stackimport::cli
