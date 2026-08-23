@@ -121,6 +121,10 @@ inline char* i32toa(int32_t value, char* buffer) {
 }
 
 inline char* u64toa(uint64_t value, char* buffer) {
+    // Format a 64-bit unsigned integer as a NUL-free decimal string at
+    // buffer using a two-digit lookup table. The digit count is handled by
+    // the branch chain below, and the returned pointer points past the last
+    // written character.
     const char* cDigitsLut = GetDigitsLut();
     const uint64_t  kTen8 = 100000000;
     const uint64_t  kTen9 = kTen8 * 10;
