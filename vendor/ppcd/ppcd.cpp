@@ -351,7 +351,7 @@ static char *place_target(char *ptr, int comma)
     if(comma) ptr += sprintf(ptr, "%s", COMMA);
     old = ptr;
 #ifdef  POWERPC_32
-    ptr += sprintf(ptr, HEX1 "%08X" HEX2, (u32)o->target);
+    ptr += sprintf(ptr, HEX1 "%08X" HEX2, (unsigned int)o->target);
 #endif
 #ifdef  POWERPC_64
     ptr = old;
@@ -662,7 +662,7 @@ static void mcrxr(void)
 
 static char *spr_name(int n)
 {
-    static char def[8];
+    static char def[16];
 
     switch(n)
     {
@@ -754,13 +754,13 @@ static char *spr_name(int n)
 #endif
     }
 
-    sprintf(def, "%u", n);
+    snprintf(def, sizeof(def), "%u", n);
     return def;
 }
 
 static char *tbr_name(int n)
 {
-    static char def[8];
+    static char def[16];
 
     switch(n)
     {
@@ -769,7 +769,7 @@ static char *tbr_name(int n)
         case 269: return "TBU";
     }
 
-    sprintf(def, "%u", n);
+    snprintf(def, sizeof(def), "%u", n);
     return def;
 }
 
@@ -1766,6 +1766,7 @@ char *PPCDisasmSimple(u64 pc, u32 instr)
     dis_out.instr = instr;
 
     PPCDisasm(&dis_out);
-    sprintf(output, "%08X  %08X  %-10s %s", pc, instr, dis_out.mnemonic, dis_out.operands);
+    sprintf(output, "%08llX  %08lX  %-10s %s",
+            (unsigned long long)pc, (unsigned long)instr, dis_out.mnemonic, dis_out.operands);
     return output;
 }
