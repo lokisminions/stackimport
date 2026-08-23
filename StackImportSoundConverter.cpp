@@ -105,7 +105,6 @@ public:
 			const uint32_t numFrames = read_u32(error);
 			const double aiffSampleRate = read_extended80(error);
 			(void)read_u32(error);
-			const uint32_t format = read_u32(error);
 			(void)read_u32(error);
 			const uint32_t stateVars = read_u32(error);
 			(void)read_u32(error);
