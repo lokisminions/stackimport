@@ -401,35 +401,23 @@ void picture::maskmemfill(char ch, int x, int y, int count)
 
 void picture::buildmaskfromsurroundings()
 {
-	//debugprint();
-	
 	maskmemfill( char_from_byte_value(0xFF), 0, rowlength * height );		// All black.
-	
-	//debugprint();
 	
 	int x = 0, y = 0;
 	for( x = 0; x < width; x++ )
 		scanstartingatpixel( x, y );
 	
-	//debugprint();
-	
 	y = height -1;
 	for( x = 0; x < width; x++ )
 		scanstartingatpixel( x, y );
-	
-	//debugprint();
 	
 	x = 0;
 	for( y = 0; y < height; y++ )
 		scanstartingatpixel( x, y );
 	
-	//debugprint();
-	
 	x = width -1;
 	for( y = 0; y < height; y++ )
 		scanstartingatpixel( x, y );
-	
-	//debugprint();
 }
 
 
@@ -636,9 +624,6 @@ void picture::bwrite(fstream fp)
 	fp.write(buf, stream_size_from_nonnegative_int(totalLength));
 	const auto& platform = stackimport_current_internal_platform();
 	stackimport_internal_deallocate(buf, platform.deallocate, platform.user_data);
-	/* fp.write(reinterpret_cast<char *>(stuff), 32); */
-	/* fp.write(bitmap, bitmaplength); */
-	/* fp.write(mask, masklength); */
 }
 
 void picture::bread(fstream fp)
@@ -688,9 +673,6 @@ void picture::writefile(char * fn)
 	fp.write(buf, stream_size_from_nonnegative_int(totalLength));
 	const auto& platform = stackimport_current_internal_platform();
 	stackimport_internal_deallocate(buf, platform.deallocate, platform.user_data);
-	/* fp.write(reinterpret_cast<char *>(stuff), 32); */
-	/* fp.write(bitmap, bitmaplength); */
-	/* fp.write(mask, masklength); */
 	fp.close();
 }
 
