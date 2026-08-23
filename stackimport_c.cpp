@@ -58,7 +58,11 @@ uint32_t context_abi_signature()
 	return hash;
 }
 
-uint32_t kContextAbiSignature = context_abi_signature();
+uint32_t cached_context_abi_signature()
+{
+	static const uint32_t kContextAbiSignature = context_abi_signature();
+	return kContextAbiSignature;
+}
 
 constexpr uint32_t kKnownImportFlags =
 	STACKIMPORT_IMPORT_DUMP_RAW_BLOCKS |
@@ -83,7 +87,7 @@ bool valid_log_handler(const stackimport_log_handler* handler)
 
 bool valid_context(const stackimport_context* context)
 {
-	return context && context->abi_signature == kContextAbiSignature;
+	return context && context->abi_signature == cached_context_abi_signature();
 }
 
 void* STACKIMPORT_CALL libc_allocate(size_t size, size_t alignment, void*)
@@ -173,7 +177,7 @@ stackimport_context make_context(
 			internal_platform.user_data = handler->user_data;
 	}
 	stackimport_platform_scope scope(internal_platform);
-	return stackimport_context{kContextAbiSignature, CStackFile(), platform, internal_platform, allocator_owns_context};
+	return stackimport_context{cached_context_abi_signature(), CStackFile(), platform, internal_platform, allocator_owns_context};
 }
 
 uint32_t api_resource_payload_format(stackimport::ResourcePayloadFormat format)
@@ -383,7 +387,7 @@ STACKIMPORT_API size_t STACKIMPORT_CALL stackimport_context_alignment(void)
 
 STACKIMPORT_API uint32_t STACKIMPORT_CALL stackimport_context_abi_signature(void)
 {
-	return kContextAbiSignature;
+	return cached_context_abi_signature();
 }
 
 STACKIMPORT_API stackimport_status STACKIMPORT_CALL stackimport_context_init(
