@@ -56,6 +56,9 @@ void RunTests()
 {
 	// Exercise the public C ABI: platform plumbing, import flags, resource
 	// payload conversion, and context lifetime management.
+	// The C-ABI tests pin the public surface: platform plumbing, import
+	// flags, resource payload conversion, and context lifecycle. They also
+	// assert the ABI signature remains stable across the library.
 	assert(stackimport_context_size() <= 4096);
 	assert(stackimport_api_version() == STACKIMPORT_API_VERSION);
 	assert(std::strcmp(stackimport_version_string(), STACKIMPORT_VERSION_STRING) == 0);

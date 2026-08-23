@@ -600,6 +600,9 @@ bool	CStackFile::WriteSourceManifest( uint64_t dataForkBytes, const char* stream
 {
 	// Emit the source-manifest JSON that records the data fork byte count and
 	// the resource-fork stream status for this import.
+	// The manifest captures the import inputs: the stack's data-fork size,
+	// the resource-fork stream status, and the per-block offset/size/payload
+	// summaries used to audit what was read.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator pool(1024, &baseAllocator);
 	JsonDocument document(&pool, 1024, &baseAllocator);
@@ -758,6 +761,9 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 {
 	// Parse one STAK/BKGD/CARD-style block and register its identifier, size,
 	// and payload in the shared block map. Returns false on malformed input.
+	// The STAK block opens every stack import: it carries the stack id,
+	// card count, first card id, dimensions, pattern table, and the ids of
+	// the LIST/FTBL/STBL blocks that the rest of the loader depends on.
 	if( mStatusMessages )
 		stackimport_emit_infof( "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
 
@@ -1233,6 +1239,9 @@ bool	CStackFile::LoadReportTemplateBlock( int32_t blockID, CBuf& blockData )
 {
 	// Parse a PRFT report template block into the style sheet data that backs
 	// printed report rendering.
+	// PRFT blocks define printed report layout. This parse extracts the
+	// template name, pagination settings, and the field layout used when
+	// rendering the report later.
 	if( mStatusMessages )
 		stackimport_emit_infof( "Status: Processing 'PRFT' #%d (%lu bytes)\n", blockID, blockData.size() );
 
@@ -1355,6 +1364,12 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	// used by the index writers. inFlags carries the layer flag byte from the
 	// parent block. Returns false on structural errors so the caller can
 	// record the failure and continue with the remaining blocks.
+	// Layer blocks (BKGD/CARD) begin with a header that describes the number
+	// of parts, the background reference, and per-layer flags. This routine
+	// walks the part and content records in sequence, resolving each part's
+	// position, style, text, and script against the shared tables. The layer
+	// summary is accumulated for the JSON index, and structural errors are
+	// reported without aborting the import so sibling cards still parse.
 	int32_t		vBlockSize = static_cast<int32_t>(blockData.size());
 	const bool	isCard = strcmp( "CARD", vBlockType ) == 0;
 	char		vFileName[256] = { 0 };
@@ -1949,6 +1964,9 @@ bool	CStackFile::WriteScriptIndex() const
 {
 	// Emit script-index.json, a table of every stack, background, and card
 	// script collected during the import, plus the originating block ids.
+	// Collects the stack, background, and card scripts parsed during the
+	// import and emits script-index.json with each script's owning block id
+	// so scripts can be traced back to their container.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator pool(4096, &baseAllocator);
 	JsonDocument document(&pool, 4096, &baseAllocator);
@@ -2113,6 +2131,10 @@ bool	CStackFile::WriteJsonIndexes() const
 	// Write the project.json and stack_-1.json indexes that describe the
 	// imported stack: block inventory, fonts, styles, page and layer records,
 	// and the list of emitted output files referenced by the package.
+	// The project index inventories every block, font, style, page, and
+	// layer, and lists the media files emitted for the package. The stack
+	// index adds the page and layer records plus the collected script. Both
+	// documents are written next to the output package root.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator projectPool(1024, &baseAllocator);
 	JsonDocument project(&projectPool, 1024, &baseAllocator);

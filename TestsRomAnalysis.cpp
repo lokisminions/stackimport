@@ -14,6 +14,9 @@ void RunTests()
 {
 	// Exercise ROM analysis: resource map parsing, string scanning, and
 	// structure classification over embedded ROM fixtures.
+	// Drives the ROM resource-map parser, string scanner, and structure
+	// classifier over synthetic ROM images and asserts the reported regions
+	// and confidence scores.
 	const uint8_t crcFixture[] = {'1', '2', '3', '4', '5', '6', '7', '8', '9'};
 	const std::span<const uint8_t> crcSpan(crcFixture, sizeof(crcFixture));
 	assert(stackimport::RomDasm::compute_crc32(crcSpan) == 0xCBF43926u);

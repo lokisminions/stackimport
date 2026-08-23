@@ -464,6 +464,10 @@ private:
 	{
 		// Convert a single decoded resource payload to a PNG and write it through
 		// the resource output sink.
+		// Wraps the decoded RGBA payload in a PNG container via the vendored
+		// stb writer and hands the bytes to the resource output sink. The
+		// conversion keeps the original payload format so callers can verify
+		// the media was produced from the native resource.
 		if(payload.data.data == nullptr || payload.width == 0 || payload.height == 0 || payload.row_bytes == 0)
 			return;
 

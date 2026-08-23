@@ -1225,6 +1225,9 @@ bool decode_pcm_track_to_wav(std::span<const uint8_t> data, const Track& track, 
 // indented JSON document for diagnostics and provenance reporting.
 std::string analysis_to_json(const Analysis& analysis, int indent)
 {
+	// Walks the parsed track, atom, and sample tables and renders them as
+	// indented JSON. The produced document is used for diagnostics and
+	// provenance reporting of the movie resource conversion.
 	const std::string i0 = indent_text(indent);
 	const std::string i1 = indent_text(indent + 2);
 	const std::string i2 = indent_text(indent + 4);
@@ -1389,6 +1392,9 @@ std::string analysis_to_json(const Analysis& analysis, int indent)
 // Differs against the previous frame when provided for delta compression.
 bool decode_rpza_frame(std::span<const uint8_t> data, uint16_t width, uint16_t height, RgbaFrame& frame, std::string& error, const RgbaFrame* previous)
 {
+	// Road Pizza frames encode 16x16 blocks using a two-color palette or
+	// per-pixel runs. The decoder expands these blocks and optionally blends
+	// against the previous frame for delta compression.
 	error.clear();
 	frame = RgbaFrame{};
 	if(width == 0 || height == 0)
@@ -1544,6 +1550,9 @@ bool decode_qtrle_frame(
 	std::string& error,
 	const RgbaFrame* previous)
 {
+	// The frame is split into horizontal bands; each band decodes run-length
+	// pixel runs, background fills, and 24-bit RGB or 32-bit ARGB pixels into
+	// the shared RGBA output buffer.
 	if(width == 0 || height == 0)
 	{
 		error = "QTRLE frame dimensions are zero";
@@ -1641,6 +1650,9 @@ bool decode_qtrle_frame(
 // Uses the provided decoder state to apply vector-quantization codebooks.
 bool decode_cinepak_frame(std::span<const uint8_t> data, RgbaFrame& frame, std::string& error, CinepakDecoderState* state)
 {
+	// Cinepak frames reference codebooks built from previous frames in the
+	// strip. The decoder applies vector-quantized 4x4 blocks for both intra
+	// and predicted frames and writes the result into the output frame.
 	error.clear();
 	frame = RgbaFrame{};
 	if(data.size() < 10)

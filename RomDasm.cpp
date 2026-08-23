@@ -919,6 +919,11 @@ void classify_rom_structure(
   // Identify the high-level regions of a ROM image (boot area, resources,
   // code, and data) and fill the RomAnalysis structures used by the
   // disassembly and report passes.
+  // The classifier walks the image in address order and tags each region as
+  // boot code, resource data, executable code, or data based on the markers
+  // found by the resource-map and string scans. Region boundaries are
+  // reconciled so the report shows contiguous, non-overlapping ranges even
+  // when individual probes disagree.
   if(data.empty())
     return;
 
