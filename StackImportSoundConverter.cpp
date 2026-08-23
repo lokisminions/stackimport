@@ -137,10 +137,8 @@ public:
 			{
 				dataSize = numFrames * bytesPerSample * channels;
 				numBytes = dataSize;
-				if(format != 0x736F7774 && bytesPerSample == 2)
-				{
-					// Data is big-endian 16-bit; the common writer path below swaps it to WAV little-endian.
-				}
+				// Non-'sowt' uncompressed data with 16-bit samples is big-endian;
+				// the common writer path below swaps it to WAV little-endian.
 			}
 			else
 				return fail(error, "unsupported compression");
