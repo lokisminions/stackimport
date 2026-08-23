@@ -1273,6 +1273,8 @@ auto emit_font_transform(
 	const ResourceRef& ref,
 	IResourceOutput& output) -> bool
 {
+	// Emit a font (FOND/'NFNT') resource as its JSON form: family metadata,
+	// glyph widths, and kerning tables where present.
 	ResourcePayload descriptor = make_converted_resource_payload(
 		ref,
 		ResourcePayloadFormat::JsonUtf8,
@@ -2656,6 +2658,8 @@ auto emit_crsr_transform(
 	const ResourceRef& ref,
 	IResourceOutput& output) -> bool
 {
+	// Emit a cursor ('CURS'/'crsr') resource as JSON, including hotspot
+	// coordinates and the optional mask data.
 	ResourcePayload json_descriptor = make_converted_resource_payload(
 		ref,
 		ResourcePayloadFormat::JsonUtf8,
@@ -3152,6 +3156,10 @@ auto emit_builtin_resource_transforms(
 	const ResourceRef& ref,
 	IResourceOutput& output) -> bool
 {
+	// Dispatch a resource payload to the built-in transform table, converting
+	// supported types to JSON/PNG while falling back to native or raw output
+	// for unrecognized resources. Reports the conversion choice and any
+	// failures through the output and error sinks.
 	if(resource_type_is(resource, "XCMD") || resource_type_is(resource, "XFCN"))
 		return emit_code_resource_transform(resource, ref, output, false);
 

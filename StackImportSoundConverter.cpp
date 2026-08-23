@@ -16,6 +16,8 @@ public:
 
 	bool convert(PlatformByteVector& wav, std::string& error)
 	{
+		// Convert the current sound resource payload to a little-endian WAV byte
+		// stream, expanding compressed encodings where the codec is available.
 		uint16_t channels = 1;
 		uint32_t sampleBufferOffset = 0;
 		const int16_t sndFormat = read_s16(error);

@@ -12,6 +12,7 @@ namespace TestQuickTime {
 
 void RunTests()
 {
+	// Verify QuickTime-based sound and movie resource conversion paths.
 	const std::vector<uint8_t> movFixture = TestShared::make_quicktime_fixture();
 	const stackimport::mov2qt::Analysis movAnalysis = stackimport::mov2qt::analyze(std::span<const uint8_t>(movFixture.data(), movFixture.size()));
 	assert(movAnalysis.ok);

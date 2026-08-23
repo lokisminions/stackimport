@@ -54,6 +54,8 @@ int STACKIMPORT_CALL reject_resource_payload(
 
 void RunTests()
 {
+	// Exercise the public C ABI: platform plumbing, import flags, resource
+	// payload conversion, and context lifetime management.
 	assert(stackimport_context_size() <= 4096);
 	assert(stackimport_api_version() == STACKIMPORT_API_VERSION);
 	assert(std::strcmp(stackimport_version_string(), STACKIMPORT_VERSION_STRING) == 0);
