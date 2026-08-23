@@ -76,6 +76,8 @@ Repeatable project workflows live under `docs/workflows/`. Use them as the
 canonical checklist for common tasks before making changes:
 
 - `docs/workflows/cpp-change.mdx` for importer, parser, C API, and C++ changes.
+- `docs/workflows/code-scanning-remediation.mdx` for triaging and fixing
+  GitHub code-scanning (CodeQL and OSSF Scorecard) alerts.
 - `docs/workflows/docs-site-change.mdx` for `docs/` and `website/` changes.
 - `docs/workflows/format-reverse-engineering.mdx` for evidence-driven format
   investigation.
@@ -96,6 +98,37 @@ and the public C ABI exposes matching runtime version queries. While the library
 is pre-1.0, any breaking public API or ABI change must bump the minor version;
 major feature work must bump the major version; compatible additions and fixes
 may bump the patch version.
+
+## Code Scanning Remediation
+
+When addressing GitHub code-scanning alerts (CodeQL and OSSF Scorecard), follow
+`docs/workflows/code-scanning-remediation.mdx`. Key rules that keep alerts from
+regressing:
+
+- Always use `snprintf` into fixed buffers with `sizeof(dest)`, never
+  `sprintf`.
+- Match printf specifiers to the actual argument types. On LP64, `u32` is
+  `unsigned long` and on non-Windows `u64` is `unsigned long long`; cast the
+  argument when the format string cannot change.
+- Never modify a `for` loop counter in its body; use `while` loops for
+  scans that skip ahead (CRLF pairs, packed encodings, string scans).
+- Do not compare floats with `==` in sort comparators; compare the underlying
+  integer values instead.
+- Add a header guard to every new header and prefer `std::span`/containers
+  over raw array parameters.
+- Cast sizes to `size_t`/`ptrdiff_t` before multiplying for large
+  allocations.
+- Remove commented-out code; keep large functions at least 2% documented.
+- Vendored third-party code (`vendor/`) should only be patched for genuine
+  defects (overflow, format strings, integer arithmetic). Style and
+  maintainability noise in vendored trees is dismissed with a reason instead
+  of patched, to avoid diverging from upstream.
+- Dismiss alerts only with an explicit reason (`false positive` or
+  `won't fix`) and a comment; never silently.
+- In workflows, pin every action to a commit SHA and scope `GITHUB_TOKEN`
+  permissions to the job that needs them.
+- Run `pnpm audit` after any website dependency change and keep
+  `pnpm-lock.yaml` prettier-formatted.
 
 ## Stack Import Workflow
 

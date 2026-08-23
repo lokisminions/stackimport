@@ -1,0 +1,119 @@
+---
+title: Code Scanning Remediation
+description: Workflow for triaging and fixing GitHub code-scanning (CodeQL and OSSF Scorecard) alerts.
+---
+
+Use this workflow when working through GitHub code-scanning alerts from the
+CodeQL C/C++ analysis or the OSSF Scorecard SARIF upload, or when a code
+review or CI gate flags a new static-analysis finding.
+
+## Prerequisites
+
+- Enumerate the open alerts before changing anything:
+
+  ```sh
+  gh api repos/{owner}/{repo}/code-scanning/alerts --paginate
+  ```
+
+- Establish a baseline build and test run so later diffs are attributable.
+- Know which paths are ours versus vendored (`vendor/`). Vendored trees are
+  third-party snapshots and should not diverge from upstream for style.
+
+## Triage
+
+Classify each alert into one of:
+
+- Real defect (memory safety, logic, format mismatch, integer overflow) — fix
+  in a PR.
+- False positive or a documented design contract — dismiss with an explicit
+  reason.
+- Non-code item (repository settings, external process, repo age) — dismiss
+  with a comment or track as a follow-up.
+
+Work in priority order: real security bugs first (overrunning writes, format
+mismatches, integer overflow), then logic issues, then maintainability noise,
+then repository hygiene (workflow pinning, token permissions, license, and
+dependencies).
+
+## Fixing
+
+- Make the narrowest behavior-preserving change.
+- Prefer a real fix over suppression. A shadowed variable can hide a real bug;
+  for example, assign the read value to the outer variable instead of
+  declaring a new inner one.
+- For vendored third-party code, patch only genuine defects (buffer overflow,
+  format strings, integer overflow, loop counters). Dismiss style and
+  maintainability noise with reasons — patching vendored code for style
+  diverges from upstream and is unverifiable.
+- Group fixes into topical PRs, one per rule or file cluster, branched from
+  `main`.
+- If two PRs edit the same file, stack the second on the first (set its base
+  to the first PR's branch) instead of creating a merge conflict.
+- Confirm alerts resolve by letting the CodeQL and Scorecard workflows run on
+  the PR branch before handoff.
+
+## Recurring findings to prevent
+
+Checklist of patterns that come up repeatedly in this codebase:
+
+- Use `snprintf` into fixed buffers, never `sprintf`; size the destination
+  with `sizeof(dest)`.
+- Match printf specifiers to argument types — `u32` is `unsigned long` on
+  LP64 and `u64` is `unsigned long long` on non-Windows; cast explicitly.
+- Do not modify a `for` loop counter in the loop body (CRLF skips, packed
+  scans): convert to `while` loops.
+- Guard platform-specific helpers with `#ifdef` instead of leaving unused
+  statics in 32-bit builds.
+- Never compare floats with `==` in sort comparators; compare the underlying
+  integers instead.
+- Add a header guard to every new header.
+- Prefer `std::span` or containers over raw array parameters in interfaces.
+- Remove commented-out code rather than leaving it in place.
+- Cast sizes to `size_t`/`ptrdiff_t` before multiplying for large
+  allocations.
+- Pin every GitHub Action to a commit SHA and scope `GITHUB_TOKEN`
+  permissions to the job that needs them.
+- Run `pnpm audit` after touching the website dependency tree, and keep the
+  lockfile prettier-formatted.
+- Keep large functions documented (at least 2% comment lines) so
+  `cpp/poorly-documented-function` stays quiet.
+- Non-owning raw-pointer sinks and RAII scopes are acceptable, but record the
+  lifetime contract in a comment or dismiss with a reason.
+
+## Validation
+
+Run the normal CMake build and tests, then the strict warning pass (see
+[C++ Parser Or Library Change](./cpp-change/)):
+
+```sh
+cmake -S . -B build
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+For refactors of vendored decoders, prove behavioral equivalence by diffing
+the pre-refactor and post-refactor output across configurations (for example,
+the ppcd disassembler under `POWERPC_32`, `POWERPC_64`, and `GEKKO`).
+
+For documentation site changes, run the docs-site checks (see
+[Documentation Site Change](./docs-site-change/)):
+
+```sh
+cd website
+pnpm lint
+pnpm build
+```
+
+## Dismissals
+
+Only dismiss with an explicit reason and comment. Common valid reasons:
+
+- `false positive`: variadic pack expansion, Doxygen `\code` examples,
+  unevaluated SFINAE `sizeof` probes, fmt user-defined-literal `operator=`.
+- `won't fix`: correct-by-design patterns (RAII scopes, non-owning sinks,
+  vendored global-buffer contracts), and vendored style noise.
+
+## Handoff
+
+Report the alert numbers resolved or dismissed (and why), the PRs opened, the
+validation commands run, and any merge ordering between stacked PRs.
