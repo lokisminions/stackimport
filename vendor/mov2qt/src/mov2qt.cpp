@@ -1228,6 +1228,10 @@ std::string analysis_to_json(const Analysis& analysis, int indent)
 	// Walks the parsed track, atom, and sample tables and renders them as
 	// indented JSON. The produced document is used for diagnostics and
 	// provenance reporting of the movie resource conversion.
+	//
+	// Atom and track records are emitted as nested objects keyed by their
+	// fourcc identifier, and per-sample payload sizes are summarized in a
+	// compact table so the output stays readable for large movies.
 	const std::string i0 = indent_text(indent);
 	const std::string i1 = indent_text(indent + 2);
 	const std::string i2 = indent_text(indent + 4);
@@ -1653,6 +1657,9 @@ bool decode_cinepak_frame(std::span<const uint8_t> data, RgbaFrame& frame, std::
 	// Cinepak frames reference codebooks built from previous frames in the
 	// strip. The decoder applies vector-quantized 4x4 blocks for both intra
 	// and predicted frames and writes the result into the output frame.
+	//
+	// Each strip carries a header describing the block format and codebook
+	// updates; malformed strips are reported instead of being decoded.
 	error.clear();
 	frame = RgbaFrame{};
 	if(data.size() < 10)

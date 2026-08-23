@@ -18,6 +18,9 @@ void RunTests()
 	// Builds resource-fork fixtures in memory and converts cursors, icons,
 	// palettes, text, and code resources through the streaming output sink,
 	// asserting payload bytes, formats, and allocation-failure behavior.
+	// Every payload type is exercised under both a healthy and a failing
+	// allocator so the C API error paths are verified, and the fork bytes
+	// are round-tripped through the platform file abstraction.
 	const std::string resourceForkRoot = std::string("/tmp/stackimport-rsrc-root-") + std::to_string(std::rand());
 	const std::string resourceForkOutput = std::string("/tmp/stackimport-rsrc-output-") + std::to_string(std::rand());
 	assert(TestShared::counting_make_directory(resourceForkOutput.c_str(), nullptr) == 0);
