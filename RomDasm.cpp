@@ -228,7 +228,7 @@ bool parse_resource_map_at(
     return false;
   const uint16_t raw_type_count = static_cast<uint16_t>((static_cast<uint16_t>(map[type_list_off]) << 8u) | map[type_list_off + 1]);
   const size_t type_count = static_cast<size_t>(raw_type_count) + 1u;
-  if(type_count == 0 || type_count > 64 || type_list_off + 2u + type_count * 8u > map_len)
+  if(type_count > 64 || type_list_off + 2u + type_count * 8u > map_len)
     return false;
 
   struct ParsedType {
@@ -372,20 +372,25 @@ bool parse_rom_kurt_resource_at(
 
   const size_t search_start = kurt_offset > 64 ? kurt_offset - 64 : 0;
   size_t metadata_offset = data.size();
-  for(size_t candidate = kurt_offset >= 8 ? kurt_offset - 8 : 0;; candidate--) {
-    if(candidate < search_start || candidate + 8 > kurt_offset)
+  size_t candidate = kurt_offset - 8;
+  while(true) {
+    if(candidate < search_start)
       break;
-    if(!resource_type_is_plausible(data.data() + candidate))
-      continue;
-    const uint8_t name_length = data[candidate + 7];
-    const size_t name_start = candidate + 8u;
-    const size_t padding_start = name_start + name_length;
-    if(padding_start > kurt_offset)
-      continue;
-    if(!is_kckc_padding(data, padding_start, kurt_offset))
-      continue;
-    metadata_offset = candidate;
-    break;
+    bool matched = false;
+    if(resource_type_is_plausible(data.data() + candidate)) {
+      const uint8_t name_length = data[candidate + 7];
+      const size_t name_start = candidate + 8u;
+      const size_t padding_start = name_start + name_length;
+      if(padding_start <= kurt_offset && is_kckc_padding(data, padding_start, kurt_offset)) {
+        metadata_offset = candidate;
+        matched = true;
+      }
+    }
+    if(matched)
+      break;
+    if(candidate == 0)
+      break;
+    candidate--;
   }
   if(metadata_offset == data.size())
     return false;
@@ -808,12 +813,17 @@ std::vector<StringRegion> scan_strings(
   }
 
   if(scan_pascal) {
-    for(size_t i = 0; i < data.size(); i++) {
+    size_t i = 0;
+    while(i < data.size()) {
       uint8_t len = data[i];
-      if(len == 0 || len > 255)
+      if(len == 0) {
+        i++;
         continue;
-      if(i + 1 + len > data.size())
+      }
+      if(i + 1 + len > data.size()) {
+        i++;
         continue;
+      }
       bool all_printable = true;
       for(size_t j = 1; j <= len; j++) {
         uint8_t b = data[i + j];
@@ -829,6 +839,7 @@ std::vector<StringRegion> scan_strings(
           result.push_back({static_cast<uint32_t>(i), value, len, true, confidence});
         i += len;
       }
+      i++;
     }
   }
 
@@ -1005,8 +1016,8 @@ void classify_rom_structure(
 
   std::sort(function_candidates.begin(), function_candidates.end(),
             [](const FunctionCandidate& a, const FunctionCandidate& b) {
-              const double score_a = (static_cast<double>(a.calls) * 3.0) + static_cast<double>(a.jumps) + static_cast<double>(a.references);
-              const double score_b = (static_cast<double>(b.calls) * 3.0) + static_cast<double>(b.jumps) + static_cast<double>(b.references);
+              const size_t score_a = (a.calls * 3u) + a.jumps + a.references;
+              const size_t score_b = (b.calls * 3u) + b.jumps + b.references;
               if(score_a != score_b)
                 return score_a > score_b;
               return a.address < b.address;
