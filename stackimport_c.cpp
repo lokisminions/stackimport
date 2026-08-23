@@ -32,12 +32,12 @@ struct stackimport_context {
 
 namespace {
 
-constexpr uint32_t fnv1a_byte(uint32_t hash, uint8_t value)
+uint32_t fnv1a_byte(uint32_t hash, uint8_t value)
 {
 	return (hash ^ value) * 16777619u;
 }
 
-constexpr uint32_t fnv1a_word(uint32_t hash, uint64_t value)
+uint32_t fnv1a_word(uint32_t hash, uint64_t value)
 {
 	for(int shift = 0; shift < 64; shift += 8)
 		hash = fnv1a_byte(hash, static_cast<uint8_t>((value >> shift) & 0xFFu));
@@ -58,7 +58,7 @@ uint32_t context_abi_signature()
 	return hash;
 }
 
-const uint32_t kContextAbiSignature = context_abi_signature();
+uint32_t kContextAbiSignature = context_abi_signature();
 
 constexpr uint32_t kKnownImportFlags =
 	STACKIMPORT_IMPORT_DUMP_RAW_BLOCKS |

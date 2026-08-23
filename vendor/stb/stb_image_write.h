@@ -1096,7 +1096,7 @@ static void stbiw__encode_png_line(unsigned char *pixels, int stride_bytes, int 
    int *mymap = (y != 0) ? mapping : firstmap;
    int i;
    int type = mymap[filter_type];
-   unsigned char *z = pixels + stride_bytes * (stbi__flip_vertically_on_write ? (ptrdiff_t)(height-1-y) : (ptrdiff_t)y);
+   unsigned char *z = pixels + (ptrdiff_t)stride_bytes * (stbi__flip_vertically_on_write ? (ptrdiff_t)(height-1-y) : (ptrdiff_t)y);
    int signed_stride = stbi__flip_vertically_on_write ? -stride_bytes : stride_bytes;
 
    if (type==0) {
