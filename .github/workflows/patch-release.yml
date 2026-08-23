@@ -10,13 +10,15 @@ on:
         type: string
 
 permissions:
-  actions: write
-  contents: write
+  contents: read
 
 jobs:
   patch-release:
     name: Create next patch tag
     runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: write
     steps:
       - name: Check out source
         uses: actions/checkout@v4
