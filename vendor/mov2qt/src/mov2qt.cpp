@@ -1221,6 +1221,8 @@ bool decode_pcm_track_to_wav(std::span<const uint8_t> data, const Track& track, 
 	return true;
 }
 
+// Serialize the parsed QuickTime analysis (tracks, atoms, samples) as an
+// indented JSON document for diagnostics and provenance reporting.
 std::string analysis_to_json(const Analysis& analysis, int indent)
 {
 	const std::string i0 = indent_text(indent);
@@ -1383,6 +1385,8 @@ std::string analysis_to_json(const Analysis& analysis, int indent)
 	return out;
 }
 
+// Decode one 'rpza' (Road Pizza) video frame into the RGBA output frame.
+// Differs against the previous frame when provided for delta compression.
 bool decode_rpza_frame(std::span<const uint8_t> data, uint16_t width, uint16_t height, RgbaFrame& frame, std::string& error, const RgbaFrame* previous)
 {
 	error.clear();
@@ -1528,6 +1532,8 @@ bool decode_rpza_frame(std::span<const uint8_t> data, uint16_t width, uint16_t h
 	return true;
 }
 
+// Decode one 'qtrle' (QuickTime RLE) video frame into the RGBA output frame.
+// Handles run-length encoded pixel and background fills for 16/24/32-bit data.
 bool decode_qtrle_frame(
 	std::span<const uint8_t> data,
 	uint16_t width,
@@ -1631,6 +1637,8 @@ bool decode_qtrle_frame(
 	return true;
 }
 
+// Decode one 'cvid' (Cinepak) video frame into the RGBA output frame.
+// Uses the provided decoder state to apply vector-quantization codebooks.
 bool decode_cinepak_frame(std::span<const uint8_t> data, RgbaFrame& frame, std::string& error, CinepakDecoderState* state)
 {
 	error.clear();

@@ -1322,7 +1322,7 @@ template <typename T> auto to_decimal(T x) noexcept -> decimal_fp<T> {
 
   if (r < deltai) {
     // Exclude the right endpoint if necessary.
-    if (r == 0 && (z_mul.is_integer & !include_right_endpoint)) {
+    if (r == 0 && (z_mul.is_integer && !include_right_endpoint)) {
       --ret_value.significand;
       r = float_info<T>::big_divisor;
       goto small_divisor_case_label;
@@ -1429,7 +1429,7 @@ FMTQUILL_FUNC void format_system_error(detail::buffer<char>& out, int error_code
     detail::write(appender(out), std::system_error(ec, message).what());
     return;
   }
-  FMTQUILL_CATCH(...) {}
+  FMTQUILL_CATCH(...) { /* Fall back to the bare error-code formatter below. */ }
   format_error_code(out, error_code, message);
 }
 
@@ -1780,12 +1780,14 @@ inline auto is_printable(uint16_t x, const singleton* singletons,
 
   auto xsigned = static_cast<int>(x);
   auto current = true;
-  for (size_t i = 0; i < normal_size; ++i) {
+  size_t i = 0;
+  while (i < normal_size) {
     auto v = static_cast<int>(normal[i]);
     auto len = (v & 0x80) != 0 ? (v & 0x7f) << 8 | normal[++i] : v;
     xsigned -= len;
     if (xsigned < 0) break;
     current = !current;
+    ++i;
   }
   return current;
 }

@@ -220,7 +220,7 @@ int	snd2wav::convert()
 			cerr << "not sampled sound\n";
 			return 3;
 		}
-		int32_t	opts = ReadSint32();
+		opts = ReadSint32();
 		if( opts != initMono && opts != 0xa0 && opts != initStereo )
 		{
 			cerr << "unhandled opts " << opts << "\n";
