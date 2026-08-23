@@ -1275,6 +1275,9 @@ auto emit_font_transform(
 {
 	// Emit a font (FOND/'NFNT') resource as its JSON form: family metadata,
 	// glyph widths, and kerning tables where present.
+	// Font resources describe family metadata, glyph metrics, and kerning.
+	// The transform serializes the family name, style flags, per-glyph
+	// advance widths, and the kerning table into a single JSON record.
 	ResourcePayload descriptor = make_converted_resource_payload(
 		ref,
 		ResourcePayloadFormat::JsonUtf8,
@@ -2660,6 +2663,9 @@ auto emit_crsr_transform(
 {
 	// Emit a cursor ('CURS'/'crsr') resource as JSON, including hotspot
 	// coordinates and the optional mask data.
+	// Cursor resources carry a hotspot and, optionally, 1-bit mask data. The
+	// transform emits the hotspot, dimensions, and mask as JSON and, when a
+	// color variant exists, references the icon payload.
 	ResourcePayload json_descriptor = make_converted_resource_payload(
 		ref,
 		ResourcePayloadFormat::JsonUtf8,
@@ -3160,6 +3166,12 @@ auto emit_builtin_resource_transforms(
 	// supported types to JSON/PNG while falling back to native or raw output
 	// for unrecognized resources. Reports the conversion choice and any
 	// failures through the output and error sinks.
+	// The transform table is keyed by four-character resource type. Each entry
+	// selects the JSON/PNG converter, the payload format, and how conversion
+	// status is reported. Recognized resources are converted and streamed
+	// through the output sink; unrecognized types fall back to native or raw
+	// output so no payload is silently dropped. Failures are recorded on the
+	// error sink and surfaced in the import report.
 	if(resource_type_is(resource, "XCMD") || resource_type_is(resource, "XFCN"))
 		return emit_code_resource_transform(resource, ref, output, false);
 

@@ -179,6 +179,9 @@ void test_resource_metadata_transforms()
 {
 	// Verify metadata-resource transforms (fonts, styles, and tables) produce
 	// the expected JSON structures and error handling.
+	// Asserts the metadata transforms (fonts, styles, tables) produce the
+	// expected JSON shape and that malformed inputs return the documented
+	// error status without throwing.
 	std::vector<uint8_t> addColorData;
 	addColorData.push_back(0x03);
 	TestShared::append_u16be(addColorData, 10);
@@ -358,6 +361,9 @@ void test_resource_code_transforms()
 {
 	// Verify code-resource transforms (XCMD/XFCN and native executables)
 	// including disassembly output and payload classification.
+	// Asserts code-resource transforms classify XCMD/XFCN and native
+	// executables correctly and emit the expected disassembly/payload
+	// records.
 	std::vector<uint8_t> code0Payload;
 	TestShared::append_u32be(code0Payload, 0x1000);
 	TestShared::append_u32be(code0Payload, 0x2000);
@@ -495,6 +501,8 @@ void test_resource_color_and_ui_transforms()
 {
 	// Verify color and UI-resource transforms (palettes, icons, and cursors)
 	// produce the expected payload formats.
+	// Asserts palette, icon, and cursor transforms map colors and masks to
+	// the expected RGBA/PNG outputs and report unsupported variants.
 	std::vector<uint8_t> colorTablePayload;
 	TestShared::append_u32be(colorTablePayload, 0x12345678);
 	TestShared::append_u16be(colorTablePayload, 0x8000);
