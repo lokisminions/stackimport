@@ -263,7 +263,7 @@ public:
    *
    * @param colours The Colours instance to use.
    */
-  QUILL_ATTRIBUTE_COLD void set_colours(Colours colours) { _colours = colours; }
+  QUILL_ATTRIBUTE_COLD void set_colours(const Colours& colours) { _colours = colours; }
 
   /**
    * @brief Sets the colour mode for console output.
