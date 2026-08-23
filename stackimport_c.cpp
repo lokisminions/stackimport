@@ -44,7 +44,7 @@ constexpr uint32_t fnv1a_word(uint32_t hash, uint64_t value)
 	return hash;
 }
 
-constexpr uint32_t context_abi_signature()
+uint32_t context_abi_signature()
 {
 	uint32_t hash = 2166136261u;
 	hash = fnv1a_word(hash, STACKIMPORT_API_VERSION);
@@ -58,7 +58,7 @@ constexpr uint32_t context_abi_signature()
 	return hash;
 }
 
-constexpr uint32_t kContextAbiSignature = context_abi_signature();
+const uint32_t kContextAbiSignature = context_abi_signature();
 
 constexpr uint32_t kKnownImportFlags =
 	STACKIMPORT_IMPORT_DUMP_RAW_BLOCKS |
