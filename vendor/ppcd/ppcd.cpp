@@ -346,7 +346,6 @@ static char * b_ctr[16] = {
 static char *place_target(char *ptr, int comma)
 {
     char *old;
-    u32 *t = (u32 *)&o->target;
 
     if(comma) ptr += sprintf(ptr, "%s", COMMA);
     old = ptr;
@@ -354,6 +353,7 @@ static char *place_target(char *ptr, int comma)
     ptr += sprintf(ptr, HEX1 "%08X" HEX2, (unsigned int)o->target);
 #endif
 #ifdef  POWERPC_64
+    u32 *t = (u32 *)&o->target;
     ptr = old;
     if(bigendian) ptr += sprintf(ptr, HEX1 "%08X_%08X" HEX2, t[0], t[1]);
     else ptr += sprintf(ptr, HEX1 "%08X_%08X" HEX2, t[1], t[0]);
@@ -534,9 +534,9 @@ static void rlw(char *name, int rb, int ins=0)
 #define RLDM_INS        2       // MASK(b, ~n)
 
 // Rotate left double-word.
+#ifdef POWERPC_64
 static void rld(char *name, int rb, int mtype)
 {
-#ifdef POWERPC_64
     int m = DIS_MB, n = DIS_RB;
     if(Instr & 0x20) m += 32;   // b or e
     if(Instr & 0x02) n += 32;   // sh
@@ -560,8 +560,8 @@ static void rld(char *name, int rb, int mtype)
     o->r[1] = DIS_RS;
     if(rb) o->r[2] = DIS_RB;
     o->iclass |= PPC_DISA_64 | PPC_DISA_INTEGER;
-#endif
 }
+#endif
 
 // Load/Store.
 static void ldst(char *name, int x/*indexed*/, int load=1, int L=0, int string=0, int fload=0)
@@ -660,9 +660,62 @@ static void mcrxr(void)
     o->r[0] = DIS_RD >> 2;
 }
 
+// Gekko-specific SPR names; returns NULL when not a Gekko SPR.
+static const char *gekko_spr_name(int n)
+{
+#ifdef GEKKO
+    switch(n)
+    {
+        case 282: return "EAR";
+        case 912: return "GQR0";
+        case 913: return "GQR1";
+        case 914: return "GQR2";
+        case 915: return "GQR3";
+        case 916: return "GQR4";
+        case 917: return "GQR5";
+        case 918: return "GQR6";
+        case 919: return "GQR7";
+        case 920: return "HID2";
+        case 921: return "WPAR";
+        case 922: return "DMAU";
+        case 923: return "DMAL";
+        case 936: return "UMMCR0";
+        case 940: return "UMMCR1";
+        case 937: return "UPMC1";
+        case 938: return "UPMC2";
+        case 939: return "USIA";
+        case 941: return "UPMC3";
+        case 942: return "UPMC4";
+        case 943: return "USDA";
+        case 952: return "MMCR0";
+        case 953: return "PMC1";
+        case 954: return "PMC2";
+        case 955: return "SIA";
+        case 956: return "MMCR1";
+        case 957: return "PMC3";
+        case 958: return "PMC4";
+        case 959: return "SDA";
+        case 1008: return "HID0";
+        case 1009: return "HID1";
+        case 1010: return "IABR";
+        case 1013: return "DABR";
+        case 1017: return "L2CR";
+        case 1019: return "ICTC";
+        case 1020: return "THRM1";
+        case 1021: return "THRM2";
+        case 1022: return "THRM3";
+    }
+#endif
+    return NULL;
+}
+
 static char *spr_name(int n)
 {
     static char def[16];
+
+    const char *gekko = gekko_spr_name(n);
+    if(gekko != NULL)
+        return const_cast<char *>(gekko);
 
     switch(n)
     {
@@ -709,48 +762,6 @@ static char *spr_name(int n)
         case 1013: return "DABR";
         case 1022: return "FPECR";
         case 1023: return "PIR";
-#endif
-
-        // Gekko-specific SPRs
-#ifdef GEKKO
-        case 282: return "EAR";
-        case 912: return "GQR0";
-        case 913: return "GQR1";
-        case 914: return "GQR2";
-        case 915: return "GQR3";
-        case 916: return "GQR4";
-        case 917: return "GQR5";
-        case 918: return "GQR6";
-        case 919: return "GQR7";
-        case 920: return "HID2";
-        case 921: return "WPAR";
-        case 922: return "DMAU";
-        case 923: return "DMAL";
-        case 936: return "UMMCR0";
-        case 940: return "UMMCR1";
-        case 937: return "UPMC1";
-        case 938: return "UPMC2";
-        case 939: return "USIA";
-        case 941: return "UPMC3";
-        case 942: return "UPMC4";
-        case 943: return "USDA";
-        case 952: return "MMCR0";
-        case 953: return "PMC1";
-        case 954: return "PMC2";
-        case 955: return "SIA";
-        case 956: return "MMCR1";
-        case 957: return "PMC3";
-        case 958: return "PMC4";
-        case 959: return "SDA";
-        case 1008: return "HID0";
-        case 1009: return "HID1";
-        case 1010: return "IABR";
-        case 1013: return "DABR";
-        case 1017: return "L2CR";
-        case 1019: return "ICTC";
-        case 1020: return "THRM1";
-        case 1021: return "THRM2";
-        case 1022: return "THRM3";
 #endif
     }
 
@@ -846,6 +857,7 @@ static void srawi(void)
     o->iclass = PPC_DISA_INTEGER;
 }
 
+#ifdef POWERPC_64
 static void sradi(void)
 {
     int rs = DIS_RS, ra = DIS_RA, sh = (((Instr >> 1) & 1) << 5) | DIS_RB;
@@ -856,6 +868,7 @@ static void sradi(void)
     o->r[2] = sh;
     o->iclass = PPC_DISA_INTEGER | PPC_DISA_64;
 }
+#endif
 
 static void lsswi(char *name)
 {
@@ -1076,94 +1089,11 @@ static void ps_db(char *fix, int aonly=0)
 
 // ---------------------------------------------------------------------------
 
-void PPCDisasm(PPCD_CB *discb)
+// Extended opcode groups of the main decoder, extracted so each opcode
+// case stays short and readable.
+
+static void ext1(void)
 {
-    // Save parameters in local variables for static calls
-    o = discb;
-    if(o == NULL) return;
-
-    // Detect endianness order.
-    if(bigendian == -1)
-    {
-        u8 test_value[2] = { 0xAA, 0xBB };
-        u16 *value = (u16 *)test_value;
-        if(*value == 0xAABB) bigendian = 1;
-        else bigendian = 0;
-    }
-
-    // Reset output parameters
-    o->iclass = PPC_DISA_OTHER;
-    o->r[0] = o->r[1] = o->r[2] = o->r[3] = 0;
-    o->immed = 0;
-    o->target = 0;
-    o->mnemonic[0] = o->operands[0] = '\0';
-
-    // Lets go!
-
-    /*
-     * Main table
-    */
-
-    switch(Instr >> 26 /* Main opcode, base 8 */) {
-#ifdef POWERPC_64
-        case 002: trap(1, 1); break;                                        // tdi
-#endif
-        case 003: trap(0, 1); break;                                        // twi
-        case 007: integer("mulli", 'D', DAB_D|DAB_A); break;                // mulli
-        case 010: integer("subfic", 'D', DAB_D|DAB_A); break;               // subfic
-        case 012: cmp("l", "i"); break;                                     // cmpli
-        case 013: cmp("", "i"); break;                                      // cmpi
-        case 014: addi("c"); break;                                         // addic
-        case 015: addi("c."); break;                                        // addic.
-        case 016: addi(""); break;                                          // addi
-        case 017: addi("s"); break;                                         // addis
-        case 020: bcx(1, 0); break;                                         // bcx
-        case 021: put("sc", 0x03ffffff, 2); break;                          // sc
-        case 022: bx(); break;                                              // bx
-        case 024: rlw("imi", 0, 1); break;                                  // rlwimix
-        case 025: rlw("inm", 0); break;                                     // rlwinmx
-        case 027: rlw("nm", 1); break;                                      // rlwnmx
-        case 030:                                                           // ori
-#ifdef SIMPLIFIED
-                  if(Instr == 0x60000000) put("nop", 0, 0, PPC_DISA_INTEGER | PPC_DISA_SIMPLIFIED);
-                  else
-#endif
-                  integer("ori", 'S', ASB_A|ASB_S, 1, 0); break;
-        case 031: integer("oris", 'S', ASB_A|ASB_S, 1, 0); break;           // oris
-        case 032: integer("xori", 'S', ASB_A|ASB_S, 1, 0); break;           // xori
-        case 033: integer("xoris", 'S', ASB_A|ASB_S, 1, 0); break;          // xoris
-        case 034: integer("andi.", 'S', ASB_A|ASB_S, 1, 0); break;          // andi.
-        case 035: integer("andis.", 'S', ASB_A|ASB_S, 1, 0); break;         // andis.
-        case 040: ldst("lwz", 0, 1); break;                                 // lwz
-        case 041: ldst("lwzu", 0, 1); break;                                // lwzu
-        case 042: ldst("lbz", 0, 1); break;                                 // lbz
-        case 043: ldst("lbzu", 0, 1); break;                                // lbzu
-        case 044: ldst("stw", 0, 0); break;                                 // stw
-        case 045: ldst("stwu", 0, 0); break;                                // stwu
-        case 046: ldst("stb", 0, 0); break;                                 // stb
-        case 047: ldst("stbu", 0, 0); break;                                // stbu
-        case 050: ldst("lhz", 0, 1); break;                                 // lhz
-        case 051: ldst("lhzu", 0, 1); break;                                // lhzu
-        case 052: ldst("lha", 0, 1); break;                                 // lha
-        case 053: ldst("lhau", 0, 1); break;                                // lhau
-        case 054: ldst("sth", 0, 0); break;                                 // sth
-        case 055: ldst("sthu", 0, 0); break;                                // sthu
-        case 056: ldst("lmw", 0, 1, 0, 1); break;                           // lmw
-        case 057: ldst("stmw", 0, 0, 0, 1); break;                          // stmw
-        case 060: ldst("lfs", 0, 1, 0, 0, 1); break;                        // lfs
-        case 061: ldst("lfsu", 0, 1, 0, 0, 1); break;                       // lfsu
-        case 062: ldst("lfd", 0, 1, 0, 0, 1); break;                        // lfd
-        case 063: ldst("lfdu", 0, 1, 0, 0, 1); break;                       // lfdu
-        case 064: ldst("stfs", 0, 0, 0, 0, 1); break;                       // stfs
-        case 065: ldst("stfsu", 0, 0, 0, 0, 1); break;                      // stfsu
-        case 066: ldst("stfd", 0, 0, 0, 0, 1); break;                       // stfd
-        case 067: ldst("stfdu", 0, 0, 0, 0, 1); break;                      // stfdu
-
-    /*
-     * Extention 1.
-    */
-
-        case 023:
     switch((Instr >> 1) & 0x3ff /* Extended opcode 023, base 8 */) {
         case 00020: bcx(0, 1); break;                                       // bclrx
         case 01020: bcx(0, 0); break;                                       // bcctrx
@@ -1184,31 +1114,13 @@ void PPCDisasm(PPCD_CB *discb)
         case 00022: put("rfid", 0x3fff801, 0, PPC_DISA_OEA | PPC_DISA_64 ); break; // rfid
 #endif
         default: ill(); break;
-    } break;
+    }
+}
 
-#ifdef  POWERPC_64
-        case 036:
-    switch((Instr >> 1) & 0xf /* Rotate left double */) {
-        case 0x0: rld("icl", 0, RLDM_LEFT); break;                          // rldiclx
-        case 0x1: rld("icl", 0, RLDM_LEFT); break;
-        case 0x2: rld("icr", 0, RLDM_RIGHT); break;                         // rldicrx
-        case 0x3: rld("icr", 0, RLDM_RIGHT); break;
-        case 0x4: rld("ic",  0, RLDM_INS); break;                           // rldicx
-        case 0x5: rld("ic",  0, RLDM_INS); break;
-        case 0x6: rld("imi", 0, RLDM_INS); break;                           // rldimix
-        case 0x7: rld("imi", 0, RLDM_INS); break;
-        case 0x8: rld("cl",  1, RLDM_LEFT); break;                          // rldclx
-        case 0x9: rld("cr",  1, RLDM_RIGHT); break;                         // rldcrx
-        default: ill(); break;
-    } break;
-#endif
+#define OE 02000
 
-    /*
-     * Extention 2.
-    */
-
-        #define OE 02000
-        case 037:
+static void ext2(void)
+{
     switch(Instr & 0x7ff /* Extended opcode 037, base 8 */) {
         case 00000: cmp("", ""); break;                                     // cmp
         case 00010:                                                         // tw
@@ -1470,31 +1382,16 @@ void PPCDisasm(PPCD_CB *discb)
                     else { integer("extsw.", 'S', ASB_A|ASB_S, 0,0,0,0,0); o->iclass |= PPC_DISA_64; } break;
 #endif
         default: ill(); break;
-    } break;
+    }
+}
 
-    /*
-     * Extention 3.
-    */
+#define MASK_D  (0x1F << 21)
+#define MASK_A  (0x1F << 16)
+#define MASK_B  (0x1F << 11)
+#define MASK_C  (0x1F <<  6)
 
-#ifdef POWERPC_64
-        case 072:
-    switch(Instr & 3) {
-        case 0: Instr &= ~3; ldst("ld", 0, 1, 1); break;                    // ld
-        case 1: Instr &= ~3; ldst("ldu", 0, 1, 1); break;                   // ldu
-        case 2: Instr &= ~3; ldst("lwa", 0, 1, 1); break;                   // lwa
-        default: ill(); break;
-    } break;
-#endif
-
-    /*
-     * Extention 4.
-    */
-
-    #define MASK_D  (0x1F << 21)
-    #define MASK_A  (0x1F << 16)
-    #define MASK_B  (0x1F << 11)
-    #define MASK_C  (0x1F <<  6)
-        case 073:
+static void ext4(void)
+{
     switch(Instr & 0x3F) {
         case 044: fpu("fdivs", MASK_C, FPU_DAB); break;                     // fdivsx
         case 045: fpu("fdivs.", MASK_C, FPU_DAB); break;
@@ -1519,27 +1416,13 @@ void PPCDisasm(PPCD_CB *discb)
         case 076: fpu("fnmadds", 0, FPU_DACB); break;                       // fnmaddsx
         case 077: fpu("fnmadds.", 0, FPU_DACB); break;
         default: ill(); break;
-    } break;
+    }
+}
 
-    /*
-     * Extention 5.
-    */
-
-#ifdef POWERPC_64
-        case 076:
-    switch(Instr & 3) {
-        case 0: Instr &= ~3; ldst("std", 0, 0, 1); break;                   // std
-        case 1: Instr &= ~3; ldst("stdu", 0, 0, 1); break;                  // stdu
-        default: ill(); break;
-    } break;
-#endif
-
-    /*
-     * Extention 6.
-    */
-
-        case 077:
-    switch(Instr & 0x3F) {
+static void fpu_rc_ops(int op)
+{
+    switch(op)
+    {
         case 000:
         switch(DIS_RC)
         {
@@ -1568,20 +1451,14 @@ void PPCDisasm(PPCD_CB *discb)
         }
         break;
         case 016:
-        switch(DIS_RC)
-        {
-            case 18: fpu("mffs", MASK_A|MASK_B, FPU_D); break;              // mffs
-            case 22: mtfsf(); break;                                        // mtfsf
-            default: ill(); break;
-        }
+        if(DIS_RC == 18) fpu("mffs", MASK_A|MASK_B, FPU_D);                 // mffs
+        else if(DIS_RC == 22) mtfsf();                                      // mtfsf
+        else ill();
         break;
         case 017:
-        switch(DIS_RC)
-        {
-            case 18: fpu("mffs.", MASK_A|MASK_B, FPU_D); break;             // mffs.
-            case 22: mtfsf(); break;                                        // mtfsf.
-            default: ill(); break;
-        }
+        if(DIS_RC == 18) fpu("mffs.", MASK_A|MASK_B, FPU_D);                // mffs.
+        else if(DIS_RC == 22) mtfsf();                                      // mtfsf.
+        else ill();
         break;
         case 020:
         switch(DIS_RC)
@@ -1604,61 +1481,55 @@ void PPCDisasm(PPCD_CB *discb)
         }
         break;
         case 030:
-        switch(DIS_RC)
-        {
-            case 0: fpu("frsp", MASK_A, FPU_DB); break;                     // frsp
-            default: ill(); break;
-        }
+        if(DIS_RC == 0) fpu("frsp", MASK_A, FPU_DB);                        // frsp
+        else ill();
         break;
         case 031:
-        switch(DIS_RC)
-        {
-            case 0: fpu("frsp.", MASK_A, FPU_DB); break;                    // frsp.
-            default: ill(); break;
-        }
+        if(DIS_RC == 0) fpu("frsp.", MASK_A, FPU_DB);                       // frsp.
+        else ill();
         break;
         case 034:
-        switch(DIS_RC)
-        {
-            case 0: fpu("fctiw", MASK_A, FPU_DB); break;                    // fctiw
+        if(DIS_RC == 0) fpu("fctiw", MASK_A, FPU_DB);                       // fctiw
 #ifdef POWERPC_64
-            case 25: fpu("fctid", MASK_A, FPU_DB); break;                   // fctid
-            case 26: fpu("fcfid", MASK_A, FPU_DB); break;                   // fcfid
+        else if(DIS_RC == 25) fpu("fctid", MASK_A, FPU_DB);                 // fctid
+        else if(DIS_RC == 26) fpu("fcfid", MASK_A, FPU_DB);                 // fcfid
 #endif
-            default: ill(); break;
-        }
+        else ill();
         break;
         case 035:
-        switch(DIS_RC)
-        {
-            case 0: fpu("fctiw.", MASK_A, FPU_DB); break;                   // fctiw.
+        if(DIS_RC == 0) fpu("fctiw.", MASK_A, FPU_DB);                      // fctiw.
 #ifdef POWERPC_64
-            case 25: fpu("fctid.", MASK_A, FPU_DB); break;                  // fctid.
-            case 26: fpu("fcfid.", MASK_A, FPU_DB); break;                  // fcfid.
+        else if(DIS_RC == 25) fpu("fctid.", MASK_A, FPU_DB);                // fctid.
+        else if(DIS_RC == 26) fpu("fcfid.", MASK_A, FPU_DB);                // fcfid.
 #endif
-            default: ill(); break;
-        }
+        else ill();
         break;
         case 036:
-        switch(DIS_RC)
-        {
-            case 0: fpu("fctiwz", MASK_A, FPU_DB); break;                   // fctiwz
+        if(DIS_RC == 0) fpu("fctiwz", MASK_A, FPU_DB);                      // fctiwz
 #ifdef POWERPC_64
-            case 25: fpu("fctidz", MASK_A, FPU_DB); break;                  // fctidz
+        else if(DIS_RC == 25) fpu("fctidz", MASK_A, FPU_DB);                // fctidz
 #endif
-            default: ill(); break;
-        }
+        else ill();
         break;
         case 037:
-        switch(DIS_RC)
-        {
-            case 0: fpu("fctiwz.", MASK_A, FPU_DB); break;                  // fctiwz.
+        if(DIS_RC == 0) fpu("fctiwz.", MASK_A, FPU_DB);                     // fctiwz.
 #ifdef POWERPC_64
-            case 25: fpu("fctidz.", MASK_A, FPU_DB); break;                 // fctidz.
+        else if(DIS_RC == 25) fpu("fctidz.", MASK_A, FPU_DB);               // fctidz.
 #endif
-            default: ill(); break;
-        }
+        else ill();
         break;
+        default: ill(); break;
+    }
+}
+
+
+static void ext6(void)
+{
+    switch(Instr & 0x3F) {
+        case 000: case 014: case 015: case 016: case 017:
+        case 020: case 021: case 030: case 031: case 034:
+        case 035: case 036: case 037:
+            fpu_rc_ops(Instr & 0x3F); break;
         case 044: fpu("fdiv", MASK_C, FPU_DAB); break;                      // fdivx
         case 045: fpu("fdiv.", MASK_C, FPU_DAB); break;
         case 050: fpu("fsub", MASK_C, FPU_DAB); break;                      // fsubx
@@ -1684,7 +1555,161 @@ void PPCDisasm(PPCD_CB *discb)
         case 076: fpu("fnmadd", 0, FPU_DACB); break;                        // fnmaddx
         case 077: fpu("fnmadd.", 0, FPU_DACB); break;
         default: ill(); break;
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+void PPCDisasm(PPCD_CB *discb)
+{
+    // Save parameters in local variables for static calls
+    o = discb;
+    if(o == NULL) return;
+
+    // Detect endianness order.
+    if(bigendian == -1)
+    {
+        u8 test_value[2] = { 0xAA, 0xBB };
+        u16 *value = (u16 *)test_value;
+        if(*value == 0xAABB) bigendian = 1;
+        else bigendian = 0;
+    }
+
+    // Reset output parameters
+    o->iclass = PPC_DISA_OTHER;
+    o->r[0] = o->r[1] = o->r[2] = o->r[3] = 0;
+    o->immed = 0;
+    o->target = 0;
+    o->mnemonic[0] = o->operands[0] = '\0';
+
+    // Lets go!
+
+    /*
+     * Main table
+    */
+
+    switch(Instr >> 26 /* Main opcode, base 8 */) {
+#ifdef POWERPC_64
+        case 002: trap(1, 1); break;                                        // tdi
+#endif
+        case 003: trap(0, 1); break;                                        // twi
+        case 007: integer("mulli", 'D', DAB_D|DAB_A); break;                // mulli
+        case 010: integer("subfic", 'D', DAB_D|DAB_A); break;               // subfic
+        case 012: cmp("l", "i"); break;                                     // cmpli
+        case 013: cmp("", "i"); break;                                      // cmpi
+        case 014: addi("c"); break;                                         // addic
+        case 015: addi("c."); break;                                        // addic.
+        case 016: addi(""); break;                                          // addi
+        case 017: addi("s"); break;                                         // addis
+        case 020: bcx(1, 0); break;                                         // bcx
+        case 021: put("sc", 0x03ffffff, 2); break;                          // sc
+        case 022: bx(); break;                                              // bx
+        case 024: rlw("imi", 0, 1); break;                                  // rlwimix
+        case 025: rlw("inm", 0); break;                                     // rlwinmx
+        case 027: rlw("nm", 1); break;                                      // rlwnmx
+        case 030:                                                           // ori
+#ifdef SIMPLIFIED
+                  if(Instr == 0x60000000) put("nop", 0, 0, PPC_DISA_INTEGER | PPC_DISA_SIMPLIFIED);
+                  else
+#endif
+                  integer("ori", 'S', ASB_A|ASB_S, 1, 0); break;
+        case 031: integer("oris", 'S', ASB_A|ASB_S, 1, 0); break;           // oris
+        case 032: integer("xori", 'S', ASB_A|ASB_S, 1, 0); break;           // xori
+        case 033: integer("xoris", 'S', ASB_A|ASB_S, 1, 0); break;          // xoris
+        case 034: integer("andi.", 'S', ASB_A|ASB_S, 1, 0); break;          // andi.
+        case 035: integer("andis.", 'S', ASB_A|ASB_S, 1, 0); break;         // andis.
+        case 040: ldst("lwz", 0, 1); break;                                 // lwz
+        case 041: ldst("lwzu", 0, 1); break;                                // lwzu
+        case 042: ldst("lbz", 0, 1); break;                                 // lbz
+        case 043: ldst("lbzu", 0, 1); break;                                // lbzu
+        case 044: ldst("stw", 0, 0); break;                                 // stw
+        case 045: ldst("stwu", 0, 0); break;                                // stwu
+        case 046: ldst("stb", 0, 0); break;                                 // stb
+        case 047: ldst("stbu", 0, 0); break;                                // stbu
+        case 050: ldst("lhz", 0, 1); break;                                 // lhz
+        case 051: ldst("lhzu", 0, 1); break;                                // lhzu
+        case 052: ldst("lha", 0, 1); break;                                 // lha
+        case 053: ldst("lhau", 0, 1); break;                                // lhau
+        case 054: ldst("sth", 0, 0); break;                                 // sth
+        case 055: ldst("sthu", 0, 0); break;                                // sthu
+        case 056: ldst("lmw", 0, 1, 0, 1); break;                           // lmw
+        case 057: ldst("stmw", 0, 0, 0, 1); break;                          // stmw
+        case 060: ldst("lfs", 0, 1, 0, 0, 1); break;                        // lfs
+        case 061: ldst("lfsu", 0, 1, 0, 0, 1); break;                       // lfsu
+        case 062: ldst("lfd", 0, 1, 0, 0, 1); break;                        // lfd
+        case 063: ldst("lfdu", 0, 1, 0, 0, 1); break;                       // lfdu
+        case 064: ldst("stfs", 0, 0, 0, 0, 1); break;                       // stfs
+        case 065: ldst("stfsu", 0, 0, 0, 0, 1); break;                      // stfsu
+        case 066: ldst("stfd", 0, 0, 0, 0, 1); break;                       // stfd
+        case 067: ldst("stfdu", 0, 0, 0, 0, 1); break;                      // stfdu
+
+    /*
+     * Extention 1.
+    */
+
+        case 023: ext1(); break;
+
+#ifdef  POWERPC_64
+        case 036:
+    switch((Instr >> 1) & 0xf /* Rotate left double */) {
+        case 0x0: rld("icl", 0, RLDM_LEFT); break;                          // rldiclx
+        case 0x1: rld("icl", 0, RLDM_LEFT); break;
+        case 0x2: rld("icr", 0, RLDM_RIGHT); break;                         // rldicrx
+        case 0x3: rld("icr", 0, RLDM_RIGHT); break;
+        case 0x4: rld("ic",  0, RLDM_INS); break;                           // rldicx
+        case 0x5: rld("ic",  0, RLDM_INS); break;
+        case 0x6: rld("imi", 0, RLDM_INS); break;                           // rldimix
+        case 0x7: rld("imi", 0, RLDM_INS); break;
+        case 0x8: rld("cl",  1, RLDM_LEFT); break;                          // rldclx
+        case 0x9: rld("cr",  1, RLDM_RIGHT); break;                         // rldcrx
+        default: ill(); break;
     } break;
+#endif
+
+    /*
+     * Extention 2.
+    */
+
+        case 037: ext2(); break;
+
+    /*
+     * Extention 3.
+    */
+
+#ifdef POWERPC_64
+        case 072:
+    switch(Instr & 3) {
+        case 0: Instr &= ~3; ldst("ld", 0, 1, 1); break;                    // ld
+        case 1: Instr &= ~3; ldst("ldu", 0, 1, 1); break;                   // ldu
+        case 2: Instr &= ~3; ldst("lwa", 0, 1, 1); break;                   // lwa
+        default: ill(); break;
+    } break;
+#endif
+
+    /*
+     * Extention 4.
+    */
+
+        case 073: ext4(); break;
+
+    /*
+     * Extention 5.
+    */
+
+#ifdef POWERPC_64
+        case 076:
+    switch(Instr & 3) {
+        case 0: Instr &= ~3; ldst("std", 0, 0, 1); break;                   // std
+        case 1: Instr &= ~3; ldst("stdu", 0, 0, 1); break;                  // stdu
+        default: ill(); break;
+    } break;
+#endif
+
+    /*
+     * Extention 6.
+    */
+
+        case 077: ext6(); break;
 
     /*
      ***********************************************************************************
