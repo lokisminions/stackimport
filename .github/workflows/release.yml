@@ -24,7 +24,7 @@ jobs:
       prerelease: ${{ steps.version.outputs.prerelease }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Validate SemVer metadata
         id: version
@@ -74,7 +74,7 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Configure
         run: >
@@ -122,7 +122,7 @@ jobs:
           (cd artifacts && cmake -E tar cf "${package_name}.zip" --format=zip -- "${package_name}")
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: stackimport-${{ needs.validate.outputs.version }}-${{ matrix.artifact_suffix }}
           path: artifacts/stackimport-${{ needs.validate.outputs.version }}-${{ matrix.artifact_suffix }}.zip
@@ -136,10 +136,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Download release artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           path: dist
           pattern: stackimport-${{ needs.validate.outputs.version }}-*
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Render formula
         env:
@@ -203,7 +203,7 @@ jobs:
             --output generated/stackimport.rb
 
       - name: Check out Homebrew tap
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: jrepp/homebrew-stackimport
           path: homebrew-tap
