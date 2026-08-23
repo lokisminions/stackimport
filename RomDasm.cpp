@@ -191,6 +191,9 @@ bool parse_resource_map_at(
     std::span<const uint8_t> data,
     uint32_t base_address,
     size_t fork_offset) {
+  // Parse a Classic Mac resource map (map header, type list, name list) at a
+  // given offset and record the resources it references. Returns false when
+  // the map is malformed or points outside the fork.
   if(fork_offset + 32 > data.size())
     return false;
   const uint8_t* fork = data.data() + fork_offset;
@@ -902,6 +905,9 @@ void classify_rom_structure(
     RomAnalysis& analysis,
     std::span<const uint8_t> data,
     uint32_t base_address) {
+  // Identify the high-level regions of a ROM image (boot area, resources,
+  // code, and data) and fill the RomAnalysis structures used by the
+  // disassembly and report passes.
   if(data.empty())
     return;
 

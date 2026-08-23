@@ -590,6 +590,8 @@ std::string CStackFile::OutputPath( const char* fileName ) const
 
 bool	CStackFile::WriteSourceManifest( uint64_t dataForkBytes, const char* streamStatus ) const
 {
+	// Emit the source-manifest JSON that records the data fork byte count and
+	// the resource-fork stream status for this import.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator pool(1024, &baseAllocator);
 	JsonDocument document(&pool, 1024, &baseAllocator);
@@ -746,6 +748,8 @@ bool	CStackFile::WriteSourceManifest( uint64_t dataForkBytes, const char* stream
 
 bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 {
+	// Parse one STAK/BKGD/CARD-style block and register its identifier, size,
+	// and payload in the shared block map. Returns false on malformed input.
 	if( mStatusMessages )
 		stackimport_emit_infof( "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
 
@@ -860,6 +864,8 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 
 bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 {
+	// Parse an STBL style table block into the mStyles entries used when
+	// writing the project index.
 	int32_t	vBlockSize = static_cast<int32_t>(blockData.size());
 	if( mStatusMessages )
 		stackimport_emit_infof( "Status: Processing 'STBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
@@ -1217,6 +1223,8 @@ bool	CStackFile::LoadPageSetupBlock( int32_t blockID, CBuf& blockData )
 
 bool	CStackFile::LoadReportTemplateBlock( int32_t blockID, CBuf& blockData )
 {
+	// Parse a PRFT report template block into the style sheet data that backs
+	// printed report rendering.
 	if( mStatusMessages )
 		stackimport_emit_infof( "Status: Processing 'PRFT' #%d (%lu bytes)\n", blockID, blockData.size() );
 
@@ -1334,6 +1342,11 @@ struct	CStyleRun { int16_t startOffset; int16_t styleID; };
 
 bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData, uint8_t inFlags )
 {
+	// Parse a BKGD or CARD layer block, resolving the layer header, its part
+	// records, backgrounds, and content text, and populate the layer summary
+	// used by the index writers. inFlags carries the layer flag byte from the
+	// parent block. Returns false on structural errors so the caller can
+	// record the failure and continue with the remaining blocks.
 	int32_t		vBlockSize = static_cast<int32_t>(blockData.size());
 	const bool	isCard = strcmp( "CARD", vBlockType ) == 0;
 	char		vFileName[256] = { 0 };
@@ -1926,6 +1939,8 @@ bool	CStackFile::LoadResourceFork( const std::string& fpath )
 
 bool	CStackFile::WriteScriptIndex() const
 {
+	// Emit script-index.json, a table of every stack, background, and card
+	// script collected during the import, plus the originating block ids.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator pool(4096, &baseAllocator);
 	JsonDocument document(&pool, 4096, &baseAllocator);
@@ -2087,6 +2102,9 @@ bool	CStackFile::WriteScriptIndex() const
 
 bool	CStackFile::WriteJsonIndexes() const
 {
+	// Write the project.json and stack_-1.json indexes that describe the
+	// imported stack: block inventory, fonts, styles, page and layer records,
+	// and the list of emitted output files referenced by the package.
 	StackImportRapidJsonAllocator baseAllocator;
 	JsonPoolAllocator projectPool(1024, &baseAllocator);
 	JsonDocument project(&projectPool, 1024, &baseAllocator);

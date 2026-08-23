@@ -462,6 +462,8 @@ private:
 
 	void write_png_payload(const stackimport::ResourcePayload& payload)
 	{
+		// Convert a single decoded resource payload to a PNG and write it through
+		// the resource output sink.
 		if(payload.data.data == nullptr || payload.width == 0 || payload.height == 0 || payload.row_bytes == 0)
 			return;
 

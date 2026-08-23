@@ -12,6 +12,8 @@ namespace TestPlatform {
 
 void RunTests()
 {
+	// Validate the platform abstraction layer used by the C API for memory,
+	// logging, and file operations.
 	const std::string platformStackPath = std::string("/tmp/stackimport-platform-read-") + std::to_string(std::rand());
 	const std::string platformStackPackage = platformStackPath + ".xstk";
 	TestShared::write_minimal_short_stak(platformStackPath);

@@ -12,6 +12,9 @@ namespace TestResourceFork {
 
 void RunTests()
 {
+	// Cover resource-fork parsing and conversion across CURS, cicn, crsr,
+	// ppat, sicn, TEXT, and code-resource payloads, including allocation
+	// failure handling and malformed input paths.
 	const std::string resourceForkRoot = std::string("/tmp/stackimport-rsrc-root-") + std::to_string(std::rand());
 	const std::string resourceForkOutput = std::string("/tmp/stackimport-rsrc-output-") + std::to_string(std::rand());
 	assert(TestShared::counting_make_directory(resourceForkOutput.c_str(), nullptr) == 0);
