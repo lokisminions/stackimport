@@ -292,7 +292,8 @@ std::vector<std::string> split_script_lines(const std::string& script)
 {
 	std::vector<std::string> lines;
 	size_t start = 0;
-	for(size_t i = 0; i <= script.size(); i++)
+	size_t i = 0;
+	while(i <= script.size())
 	{
 		if(i == script.size() || script[i] == '\r' || script[i] == '\n')
 		{
@@ -301,6 +302,7 @@ std::vector<std::string> split_script_lines(const std::string& script)
 				i++;
 			start = i + 1;
 		}
+		i++;
 	}
 	return lines;
 }
@@ -308,25 +310,31 @@ std::vector<std::string> split_script_lines(const std::string& script)
 std::vector<std::string> script_string_literals(const std::string& line)
 {
 	std::vector<std::string> literals;
-	for(size_t i = 0; i < line.size(); i++)
+	size_t i = 0;
+	while(i < line.size())
 	{
 		if(line[i] != '"')
+		{
+			i++;
 			continue;
+		}
 		std::string literal;
 		i++;
-		for(; i < line.size(); i++)
+		while(i < line.size())
 		{
 			if(line[i] == '"')
 			{
 				if(i + 1 < line.size() && line[i + 1] == '"')
 				{
 					literal.push_back('"');
-					i++;
+					i += 2;
 					continue;
 				}
+				i++;
 				break;
 			}
 			literal.push_back(line[i]);
+			i++;
 		}
 		literals.push_back(literal);
 	}
@@ -2114,51 +2122,54 @@ bool	CStackFile::WriteJsonIndexes() const
 	}
 
 	JsonValue blockArray(rapidjson::kArrayType);
-	for(const auto& block : mBlockMap)
-	{
-		JsonValue blockObject(rapidjson::kObjectType);
-		blockObject.AddMember("type", json_string(block.first.mType, projectAllocator), projectAllocator);
-		blockObject.AddMember("typeCode", ReadBEUInt32Bytes(block.first.mType), projectAllocator);
-		blockObject.AddMember("id", block.first.mID, projectAllocator);
-		blockObject.AddMember("size", static_cast<uint64_t>(block.second.size()), projectAllocator);
-		blockObject.AddMember("understood", block.first == CStackBlockIdentifier("BKGD")
-			|| block.first == CStackBlockIdentifier("BMAP")
-			|| block.first == CStackBlockIdentifier("CARD")
-			|| block.first == CStackBlockIdentifier("FTBL")
-			|| block.first == CStackBlockIdentifier("LIST")
-			|| block.first == CStackBlockIdentifier("MAST")
-			|| block.first == CStackBlockIdentifier("PAGE")
-			|| block.first == CStackBlockIdentifier("PRFT")
-			|| block.first == CStackBlockIdentifier("PRNT")
-			|| block.first == CStackBlockIdentifier("PRST")
-			|| block.first == CStackBlockIdentifier("STAK")
-			|| block.first == CStackBlockIdentifier("STBL"),
-			projectAllocator);
-		if(block.first == CStackBlockIdentifier("BMAP"))
+	const auto appendBlockRecords = [&](JsonValue& blockArray) {
+		for(const auto& block : mBlockMap)
 		{
-			char bitmapFile[256] = { 0 };
-			snprintf(bitmapFile, sizeof(bitmapFile), "BMAP_%d.%s", block.first.mID, mDecodeGraphics ? "pbm" : "raw");
-			blockObject.AddMember("outputFile", json_string(bitmapFile, projectAllocator), projectAllocator);
-			outputs.PushBack(json_output_ref(mDecodeGraphics ? "bitmap" : "rawBitmap", block.first.mID, bitmapFile, "BMAP", block.first.mID, projectAllocator), projectAllocator);
+			JsonValue blockObject(rapidjson::kObjectType);
+			blockObject.AddMember("type", json_string(block.first.mType, projectAllocator), projectAllocator);
+			blockObject.AddMember("typeCode", ReadBEUInt32Bytes(block.first.mType), projectAllocator);
+			blockObject.AddMember("id", block.first.mID, projectAllocator);
+			blockObject.AddMember("size", static_cast<uint64_t>(block.second.size()), projectAllocator);
+			blockObject.AddMember("understood", block.first == CStackBlockIdentifier("BKGD")
+				|| block.first == CStackBlockIdentifier("BMAP")
+				|| block.first == CStackBlockIdentifier("CARD")
+				|| block.first == CStackBlockIdentifier("FTBL")
+				|| block.first == CStackBlockIdentifier("LIST")
+				|| block.first == CStackBlockIdentifier("MAST")
+				|| block.first == CStackBlockIdentifier("PAGE")
+				|| block.first == CStackBlockIdentifier("PRFT")
+				|| block.first == CStackBlockIdentifier("PRNT")
+				|| block.first == CStackBlockIdentifier("PRST")
+				|| block.first == CStackBlockIdentifier("STAK")
+				|| block.first == CStackBlockIdentifier("STBL"),
+				projectAllocator);
+			if(block.first == CStackBlockIdentifier("BMAP"))
+			{
+				char bitmapFile[256] = { 0 };
+				snprintf(bitmapFile, sizeof(bitmapFile), "BMAP_%d.%s", block.first.mID, mDecodeGraphics ? "pbm" : "raw");
+				blockObject.AddMember("outputFile", json_string(bitmapFile, projectAllocator), projectAllocator);
+				outputs.PushBack(json_output_ref(mDecodeGraphics ? "bitmap" : "rawBitmap", block.first.mID, bitmapFile, "BMAP", block.first.mID, projectAllocator), projectAllocator);
+			}
+			else if(block.first == CStackBlockIdentifier("MAST"))
+				outputs.PushBack(json_output_ref("master", block.first.mID, "master_-1.json", "MAST", block.first.mID, projectAllocator), projectAllocator);
+			else if(block.first == CStackBlockIdentifier("PRNT"))
+				outputs.PushBack(json_output_ref("printSettings", block.first.mID, "printsettings.json", "PRNT", block.first.mID, projectAllocator), projectAllocator);
+			else if(block.first == CStackBlockIdentifier("PRST"))
+			{
+				char pageSetupFile[256] = { 0 };
+				snprintf(pageSetupFile, sizeof(pageSetupFile), "pagesetup_%d.json", block.first.mID);
+				outputs.PushBack(json_output_ref("pageSetup", block.first.mID, pageSetupFile, "PRST", block.first.mID, projectAllocator), projectAllocator);
+			}
+			else if(block.first == CStackBlockIdentifier("PRFT"))
+			{
+				char reportTemplateFile[256] = { 0 };
+				snprintf(reportTemplateFile, sizeof(reportTemplateFile), "reporttemplate_%d.json", block.first.mID);
+				outputs.PushBack(json_output_ref("reportTemplate", block.first.mID, reportTemplateFile, "PRFT", block.first.mID, projectAllocator), projectAllocator);
+			}
+			blockArray.PushBack(blockObject, projectAllocator);
 		}
-		else if(block.first == CStackBlockIdentifier("MAST"))
-			outputs.PushBack(json_output_ref("master", block.first.mID, "master_-1.json", "MAST", block.first.mID, projectAllocator), projectAllocator);
-		else if(block.first == CStackBlockIdentifier("PRNT"))
-			outputs.PushBack(json_output_ref("printSettings", block.first.mID, "printsettings.json", "PRNT", block.first.mID, projectAllocator), projectAllocator);
-		else if(block.first == CStackBlockIdentifier("PRST"))
-		{
-			char pageSetupFile[256] = { 0 };
-			snprintf(pageSetupFile, sizeof(pageSetupFile), "pagesetup_%d.json", block.first.mID);
-			outputs.PushBack(json_output_ref("pageSetup", block.first.mID, pageSetupFile, "PRST", block.first.mID, projectAllocator), projectAllocator);
-		}
-		else if(block.first == CStackBlockIdentifier("PRFT"))
-		{
-			char reportTemplateFile[256] = { 0 };
-			snprintf(reportTemplateFile, sizeof(reportTemplateFile), "reporttemplate_%d.json", block.first.mID);
-			outputs.PushBack(json_output_ref("reportTemplate", block.first.mID, reportTemplateFile, "PRFT", block.first.mID, projectAllocator), projectAllocator);
-		}
-		blockArray.PushBack(blockObject, projectAllocator);
-	}
+	};
+	appendBlockRecords(blockArray);
 	project.AddMember("blocks", blockArray, projectAllocator);
 
 	JsonValue fontArray(rapidjson::kArrayType);
@@ -2196,8 +2207,11 @@ bool	CStackFile::WriteJsonIndexes() const
 	outputs.PushBack(json_output_ref("project", -1, "project.json", nullptr, -1, projectAllocator), projectAllocator);
 	outputs.PushBack(json_output_ref("stack", mStackID, "stack_-1.json", "STAK", mStackID, projectAllocator), projectAllocator);
 	outputs.PushBack(json_output_ref("scriptIndex", -1, "script-index.json", nullptr, -1, projectAllocator), projectAllocator);
-	for(const auto& layer : mLayerSummaries)
-		outputs.PushBack(json_output_ref(layer.isCard ? "card" : "background", layer.id, layer.file.c_str(), layer.isCard ? "CARD" : "BKGD", layer.id, projectAllocator), projectAllocator);
+	const auto appendLayerOutputs = [&](JsonValue& outputs) {
+		for(const auto& layer : mLayerSummaries)
+			outputs.PushBack(json_output_ref(layer.isCard ? "card" : "background", layer.id, layer.file.c_str(), layer.isCard ? "CARD" : "BKGD", layer.id, projectAllocator), projectAllocator);
+	};
+	appendLayerOutputs(outputs);
 	project.AddMember("outputs", outputs, projectAllocator);
 
 	JsonStringBuffer projectBuffer(&baseAllocator);
@@ -2241,24 +2255,27 @@ bool	CStackFile::WriteJsonIndexes() const
 	}
 	stack.AddMember("pages", pages, stackAllocator);
 	JsonValue layers(rapidjson::kArrayType);
-	for(const auto& layer : mLayerSummaries)
-	{
-		JsonValue layerObject(rapidjson::kObjectType);
-		layerObject.AddMember("kind", json_string(layer.isCard ? "card" : "background", stackAllocator), stackAllocator);
-		layerObject.AddMember("id", layer.id, stackAllocator);
-		layerObject.AddMember("file", json_string(layer.file, stackAllocator), stackAllocator);
-		layerObject.AddMember("name", json_string(layer.name, stackAllocator), stackAllocator);
-		layerObject.AddMember("partCount", layer.partCount, stackAllocator);
-		layerObject.AddMember("contentCount", layer.contentCount, stackAllocator);
-		layerObject.AddMember("scriptBytes", static_cast<uint64_t>(layer.scriptBytes), stackAllocator);
-		layerObject.AddMember("textBytes", static_cast<uint64_t>(layer.textBytes), stackAllocator);
-		if(layer.isCard)
+	const auto appendStackLayerRecords = [&](JsonValue& layers) {
+		for(const auto& layer : mLayerSummaries)
 		{
-			layerObject.AddMember("owner", layer.owner, stackAllocator);
-			layerObject.AddMember("marked", (layer.flags & 16) != 0, stackAllocator);
+			JsonValue layerObject(rapidjson::kObjectType);
+			layerObject.AddMember("kind", json_string(layer.isCard ? "card" : "background", stackAllocator), stackAllocator);
+			layerObject.AddMember("id", layer.id, stackAllocator);
+			layerObject.AddMember("file", json_string(layer.file, stackAllocator), stackAllocator);
+			layerObject.AddMember("name", json_string(layer.name, stackAllocator), stackAllocator);
+			layerObject.AddMember("partCount", layer.partCount, stackAllocator);
+			layerObject.AddMember("contentCount", layer.contentCount, stackAllocator);
+			layerObject.AddMember("scriptBytes", static_cast<uint64_t>(layer.scriptBytes), stackAllocator);
+			layerObject.AddMember("textBytes", static_cast<uint64_t>(layer.textBytes), stackAllocator);
+			if(layer.isCard)
+			{
+				layerObject.AddMember("owner", layer.owner, stackAllocator);
+				layerObject.AddMember("marked", (layer.flags & 16) != 0, stackAllocator);
+			}
+			layers.PushBack(layerObject, stackAllocator);
 		}
-		layers.PushBack(layerObject, stackAllocator);
-	}
+	};
+	appendStackLayerRecords(layers);
 	stack.AddMember("layers", layers, stackAllocator);
 
 	JsonStringBuffer stackBuffer(&baseAllocator);
