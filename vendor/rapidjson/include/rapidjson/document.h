@@ -1052,10 +1052,6 @@ public:
         else {
             RAPIDJSON_ASSERT(false);    // see above note
 
-            // This will generate -Wexit-time-destructors in clang
-            // static GenericValue NullValue;
-            // return NullValue;
-
             // Use static buffer and placement-new to prevent destruction
             static char buffer[sizeof(GenericValue)];
             return *new (buffer) GenericValue();
@@ -1983,7 +1979,6 @@ private:
     //! Assignment without calling destructor
     void RawAssign(GenericValue& rhs) RAPIDJSON_NOEXCEPT {
         data_ = rhs.data_;
-        // data_.f.flags = rhs.data_.f.flags;
         rhs.data_.f.flags = kNullFlag;
     }
 

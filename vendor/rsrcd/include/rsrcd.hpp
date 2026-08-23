@@ -1340,7 +1340,7 @@ public:
     uint16_t reserved3 = 0;
     uint16_t reserved8 = 0;
 
-    auto add(Entry entry) -> Result {
+    auto add(const Entry& entry) -> Result {
         if (count_ < InlineCapacity) {
             entries_[count_++] = entry;
             return Result::ok();
@@ -2556,12 +2556,17 @@ inline auto parse(Bytes data, Driver& driver) -> Result {
     size_t code_start = 19u + name_len;
     if ((code_start & 1u) != 0) code_start++;
     if (code_start > data.size) return Error::unexpected_end();
-    if ((driver.open_label != 0 && driver.open_label < code_start) ||
-        (driver.prime_label != 0 && driver.prime_label < code_start) ||
-        (driver.control_label != 0 && driver.control_label < code_start) ||
-        (driver.status_label != 0 && driver.status_label < code_start) ||
-        (driver.close_label != 0 && driver.close_label < code_start)) {
-        return Error::invalid_data("driver label is before code start");
+    const uint16_t driver_labels[5] = {
+        driver.open_label,
+        driver.prime_label,
+        driver.control_label,
+        driver.status_label,
+        driver.close_label,
+    };
+    for (uint16_t label : driver_labels) {
+        if (label != 0 && label < code_start) {
+            return Error::invalid_data("driver label is before code start");
+        }
     }
     driver.code_start_offset = static_cast<uint32_t>(code_start);
     driver.code = data.slice(code_start, data.size - code_start);
@@ -2569,7 +2574,6 @@ inline auto parse(Bytes data, Driver& driver) -> Result {
 }
 
 } // namespace drvr
-
 // ============================================================================
 // Resource decompressor metadata (dcmp)
 // ============================================================================
@@ -2642,7 +2646,7 @@ struct Pattern {
 template<size_t InlineCapacity = 64>
 class PatternList {
 public:
-    auto add(uint32_t offset, Pattern pattern) -> Result {
+    auto add(uint32_t offset, const Pattern& pattern) -> Result {
         if (count_ < InlineCapacity) {
             offsets_[count_] = offset;
             patterns_[count_] = pattern;

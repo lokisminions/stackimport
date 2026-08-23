@@ -674,19 +674,19 @@ enum class presentation_type : unsigned char {
 
   // Integral, bool and character specifiers:
   dec = 3,  // 'd'
-  hex,      // 'x' or 'X'
-  oct,      // 'o'
-  bin,      // 'b' or 'B'
-  chr,      // 'c'
+  hex = 4,  // 'x' or 'X'
+  oct = 5,  // 'o'
+  bin = 6,  // 'b' or 'B'
+  chr = 7,  // 'c'
 
   // String and pointer specifiers:
   pointer = 3,  // 'p'
 
   // Floating-point specifiers:
   exp = 1,  // 'e' or 'E' (1 since there is no FP debug presentation)
-  fixed,    // 'f' or 'F'
-  general,  // 'g' or 'G'
-  hexfloat  // 'a' or 'A'
+  fixed = 2,      // 'f' or 'F'
+  general = 3,    // 'g' or 'G'
+  hexfloat = 4    // 'a' or 'A'
 };
 
 enum class align { none, left, right, center, numeric };
