@@ -7,6 +7,9 @@
  *
  */
 
+#ifndef CSTACKFILE_H
+#define CSTACKFILE_H
+
 // If you're not compiling for a platform where the Mac resource manager is
 //	available, set the following to 0 to remove that code from compilation:
 #ifndef MAC_CODE
@@ -19,6 +22,7 @@
 
 
 #include <map>
+#include <span>
 #include <vector>
 #include <cstdint>
 #include "CBuf.h"
@@ -42,7 +46,7 @@ public:
 	bool		mIsWildcard;
 
 	CStackBlockIdentifier( const char* inType, int32_t inID ) : mID(inID), mIsWildcard(false) 	{ size_t len = strlen(inType); if(len > 4) len = 4; memmove( mType, inType, len ); mType[len] = 0; }
-	CStackBlockIdentifier( const uint8_t inType[4], int32_t inID ) : mID(inID), mIsWildcard(false) 	{ memmove( mType, inType, 4 ); mType[4] = 0; }
+	CStackBlockIdentifier( std::span<const uint8_t> inType, int32_t inID ) : mID(inID), mIsWildcard(false) 	{ size_t len = inType.size(); if(len > 4) len = 4; memmove( mType, inType.data(), len ); mType[len] = 0; }
 	CStackBlockIdentifier( const char* inType ) : mID(0), mIsWildcard(true) 					{ size_t len = strlen(inType); if(len > 4) len = 4; memmove( mType, inType, len ); mType[len] = 0; }
 	virtual ~CStackBlockIdentifier()		= default;
 	
@@ -367,3 +371,5 @@ public:
 		bool stopped_;
 	};
 };
+
+#endif // CSTACKFILE_H
